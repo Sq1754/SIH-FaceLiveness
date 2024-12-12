@@ -16,6 +16,7 @@
             background: linear-gradient(to bottom right, #4e54c8, #8f94fb);
             color: white;
             min-height: 100vh;
+            position: relative;
         }
 
         h1 {
@@ -25,6 +26,10 @@
         }
 
         video {
+            width: 100%; /* Adjust video to take full width */
+            height: 100%; /* Adjust height to fill the container */
+            max-width: 600px; /* Limit max width */
+            max-height: 520px; /* Limit max height */
             border: 5px solid white;
             border-radius: 10px;
             margin: 20px 0;
@@ -59,7 +64,23 @@
             text-align: center;
         }
 
-        /* Responsive Design */
+        #resultCard {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
+            width: 250px;
+            display: none;
+        }
+
+        #resultCard p {
+            margin: 5px 0;
+        }
+
         @media (max-width: 768px) {
             h1 {
                 font-size: 2rem;
@@ -78,6 +99,12 @@
             p {
                 font-size: 1rem;
             }
+
+            #resultCard {
+                width: 220px;
+                bottom: 10px;
+                right: 10px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -93,22 +120,44 @@
             p {
                 font-size: 0.9rem;
             }
+
+            #resultCard {
+                width: 180px;
+                bottom: 5px;
+                right: 5px;
+            }
         }
     </style>
 </head>
 <body>
     <h1>Real vs Spoof Detection</h1>
-    <video id="videoFeed" width="600" height="520" autoplay></video>
-    <button onclick="captureImage()">Capture Image and Check Liveness</button>
+    <video id="videoFeed" autoplay></video>
+    <button id="checkResultButton" onclick="captureImage()">Check Result</button>
     <p id="result"></p>
 
+    <!-- Result card at bottom right -->
+    <div id="resultCard">
+        <p><strong>Details:-</strong></p>
+        <p><strong>Label:</strong> <span id="label"></span></p>
+        <p><strong>Confidence:</strong> <span id="confidence"></span>%</p>
+        <p><strong>Threshold:</strong> <span id="threshold"></span></p>
+    </div>
+
+    <div id="capturedImageContainer" style="display:none; margin-top: 20px;">
+        <img id="capturedImage" width="600" height="520" style="border: 5px solid white; border-radius: 10px; box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.5);" />
+    </div>
+
+    <script src="index.js"></script>
     <script>
         // Set up the webcam feed
         const videoFeed = document.getElementById('videoFeed');
-
-        // Access the webcam and display the video feed
-        
-
+        const checkResultButton = document.getElementById('checkResultButton');
+        const capturedImageContainer = document.getElementById('capturedImageContainer');
+        const capturedImage = document.getElementById('capturedImage');
+        const resultCard = document.getElementById('resultCard');
+        const labelElement = document.getElementById('label');
+        const confidenceElement = document.getElementById('confidence');
+        const thresholdElement = document.getElementById('threshold');
 
         // Capture the image from the video feed
         function captureImage() {
@@ -117,6 +166,14 @@
             canvas.height = videoFeed.videoHeight;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(videoFeed, 0, 0, canvas.width, canvas.height);
+
+            // Stop the video feed
+            const stream = videoFeed.srcObject;
+            const tracks = stream.getTracks();
+            tracks.forEach(track => track.stop());
+
+            // Hide the "Check Result" button
+            checkResultButton.style.display = 'none';
 
             // Convert the image to a Blob and send to the server
             canvas.toBlob(async function(blob) {
@@ -134,8 +191,22 @@
                     }
 
                     const result = await response.json();
-                    document.getElementById('result').innerText =
-                        `Label: ${result.label}, Confidence: ${result.confidence.toFixed(2)}%`;
+                    const confidence = result.confidence.toFixed(2);
+                    const label = result.label;
+                    const threshold = label === "Real" ? "0.75" : "0.75"; // threshold
+
+                    // Update the result card
+                    labelElement.innerText = label;
+                    confidenceElement.innerText = confidence;
+                    thresholdElement.innerText = threshold;
+
+                    // Show the result card
+                    resultCard.style.display = 'block';
+
+                    // Show the captured image
+                    capturedImage.src = canvas.toDataURL('image/jpeg');
+                    capturedImageContainer.style.display = 'block';
+                    videoFeed.style.display = 'none'; // Hide the video feed
                 } catch (error) {
                     console.error('Error:', error);
                     alert('Error making prediction');
@@ -143,8 +214,17 @@
             }, 'image/jpeg');
         }
 
-        // Initialize the webcam
+        // Set up webcam access
+        async function setupWebcam() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                videoFeed.srcObject = stream;
+            } catch (err) {
+                console.error("Error accessing webcam:", err);
+            }
+        }
+
         setupWebcam();
     </script>
 </body>
-</html>  
+</html>
