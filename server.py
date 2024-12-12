@@ -43,7 +43,7 @@ def predict():
     confidence = prediction.item()
 
     # Determine the label
-    # label = "Real" if confidence > 0.75 else "Spoof"
+    # label = "Real" if confidence > 0.5 else "Spoof"
     label = "Spoof" if confidence > 0.90 else "real"
     confidence_percentage = confidence * 100 if label == "Real" else (1 - confidence) * 100
 
