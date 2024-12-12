@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real vs Spoof Detection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(to bottom right, #4e54c8, #8f94fb);
+            color: white;
+            min-height: 100vh;
+        }
+
+        h1 {
+            margin-top: 20px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        video {
+            border: 5px solid white;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 1rem;
+            color: white;
+            background: #6a11cb;
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        p {
+            font-size: 1.2rem;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            video {
+                width: 95%;
+                height: auto;
+            }
+
+            button {
+                font-size: 0.9rem;
+                padding: 12px 25px;
+            }
+
+            p {
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            button {
+                font-size: 0.8rem;
+                padding: 10px 20px;
+            }
+
+            p {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Real vs Spoof Detection</h1>
+    <video id="videoFeed" width="600" height="520" autoplay></video>
+    <button onclick="captureImage()">Capture Image and Check Liveness</button>
+    <p id="result"></p>
+
+    <script>
+        // Set up the webcam feed
+        const videoFeed = document.getElementById('videoFeed');
+
+        // Access the webcam and display the video feed
+        
+
+
+        // Capture the image from the video feed
+        function captureImage() {
+            const canvas = document.createElement('canvas');
+            canvas.width = videoFeed.videoWidth;
+            canvas.height = videoFeed.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(videoFeed, 0, 0, canvas.width, canvas.height);
+
+            // Convert the image to a Blob and send to the server
+            canvas.toBlob(async function(blob) {
+                const formData = new FormData();
+                formData.append('image', blob, 'captured-image.jpg');
+
+                try {
+                    const response = await fetch('http://172.21.4.223:5000/predict', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to get response from server');
+                    }
+
+                    const result = await response.json();
+                    document.getElementById('result').innerText =
+                        `Label: ${result.label}, Confidence: ${result.confidence.toFixed(2)}%`;
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error making prediction');
+                }
+            }, 'image/jpeg');
+        }
+
+        // Initialize the webcam
+        setupWebcam();
+    </script>
+</body>
+</html>  
